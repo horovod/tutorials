@@ -1,8 +1,10 @@
-# Creating VM for Fashion MNIST Tutorial
+# Creating a VM for the Fashion MNIST Tutorial
+
+These instructions describe how to install a VM for the [Fashion MNIST Tutorial](README.md).
 
 ## Prerequisites
 
-Installation assumes that VM will be based on *Ubuntu Server 16.04 LTS*.
+This installation assumes that the VM will be based on *Ubuntu Server 16.04 LTS*.
 
 ## Install NVIDIA driver
 
@@ -39,14 +41,14 @@ $ sudo bash
 # pkill -SIGHUP dockerd
 ```
 
-## Build model docker
+## Build model Docker
 
 ```
 $ git clone https://github.com/horovod/tutorials && cd tutorials/fashion_mnist
 $ sudo docker build -t fashion_mnist_tutorial .
 ```
 
-## Auto-start model docker
+## Auto-start model Docker
 
 ```
 $ (echo '#!/bin/sh -e'; echo 'while true; do nvidia-docker run -it --rm --privileged --network=host --shm-size 4G fashion_mnist_tutorial; sleep 60; done') | sudo tee /etc/rc.local
