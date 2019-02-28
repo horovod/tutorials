@@ -1,6 +1,8 @@
 # Fashion MNIST Tutorial
 
-In this tutorial, you will learn how to apply Horovod to a [WideResNet](https://arxiv.org/abs/1605.07146) model, trained on Fashion MNIST dataset.
+In this tutorial, you will learn how to apply Horovod to a [WideResNet](https://arxiv.org/abs/1605.07146) model, trained on the [Fashion MNIST](https://github.com/zalandoresearch/fashion-mnist) dataset.
+
+## Prerequisites
 
 If this is an in-person session, hosts will set up VM for you and provide you credentials to Jupyter Lab.  If you're working on this tutorial on your own, please follow installation instructions in [INSTALL.md](INSTALL.md).
 
@@ -8,11 +10,11 @@ Let's begin!
 
 ## Connect to Jupyter Lab
 
-Once you open Jupyter Lab, you will see screen similar to this:
+When you open Jupyter Lab in your browser, you will see a screen similar to this:
 
 ![image](https://user-images.githubusercontent.com/16640218/53517400-5d2f0480-3a83-11e9-8db9-268037fc6c2f.png)
 
-In this lab, we will use Terminal and File Editor features.
+In this lab, we will use the Terminal and File Editor features.
 
 ## Explore model files
 
@@ -22,13 +24,13 @@ On the left hand side, you will see two Python files: `fashion_mnist.py` and `fa
 
 The first file contains the Keras model that does not have any Horovod code, while the second one has all the Horovod features added.  In this tutorial, we will guide you to transform `fashion_mnist.py` into `fashion_mnist_solution.py` step-by-step.
 
-Why Keras?  We chose Keras due to it's simplicity, and the fact that it will be the way to define models in TensorFlow 2.0.
+Why Keras?  We chose Keras due to its simplicity, and the fact that it will be the way to define models in TensorFlow 2.0.
 
 ## Run fashion_mnist.py
 
-Before we go into modifications requires to scale our WideResNet model, let's run a single-GPU version of the model.
+Before we go into modifications required to scale our WideResNet model, let's run a single-GPU version of the model.
 
-In the Launcher, click Terminal button:
+In the Launcher, click the Terminal button:
 
 <img src="https://user-images.githubusercontent.com/16640218/53534695-d135d080-3ab4-11e9-830b-ea5a9e8581d1.png" width="300"></img>
 
@@ -92,9 +94,9 @@ K.set_session(tf.Session(config=config))
 
 ![image](https://user-images.githubusercontent.com/16640218/53518149-4689ad00-3a85-11e9-9f59-f22eeba05e73.png)
 
-### Broadcast starting epoch from first worker to everyone else
+### Broadcast the starting epoch from the first worker to everyone else
 
-In `fashion_mnist.py`, we're using filename of the last checkpoint to determine epoch to resume training from in case of a failure:
+In `fashion_mnist.py`, we're using the filename of the last checkpoint to determine the epoch to resume training from in case of a failure:
 
 ```python
 # If set > 0, will resume training from a given checkpoint.
@@ -105,9 +107,9 @@ for try_epoch in range(args.epochs, 0, -1):
         break
 ```
 
-As you scale your workload to multi-node, some of your workers may not have access to the filesystem containing the checkpoint.  For that reason, we make the first worker to determine epoch to restart from, and *broadcast* that information to the rest of the workers.
+As you scale your workload to multi-node, some of your workers may not have access to the filesystem containing the checkpoint.  For that reason, we make the first worker to determine the epoch to restart from, and *broadcast* that information to the rest of the workers.
 
-This requires adding the following code:
+To broadcast the starting epoch from the first worker, add the following code:
 
 ```python
 # Horovod: broadcast resume_from_epoch from rank 0 (which will have
@@ -117,9 +119,9 @@ resume_from_epoch = hvd.broadcast(resume_from_epoch, 0, name='resume_from_epoch'
 
 ![image](https://user-images.githubusercontent.com/16640218/53534072-2de3bc00-3ab2-11e9-8cf1-7531542e3202.png)
 
-### Print verbose logs only on first worker
+### Print verbose logs only on the first worker
 
-Horovod uses MPI to run model training workers.  By default, MPI aggregates output from all workers.  In order to reduce clutter, it's recommended to write logs only on first worker.
+Horovod uses MPI to run model training workers.  By default, MPI aggregates output from all workers.  To reduce clutter, we recommended that you write logs only on the first worker.
 
 Replace `verbose = 1` with the following code:
 
@@ -130,9 +132,9 @@ verbose = 1 if hvd.rank() == 0 else 0
 
 ![image](https://user-images.githubusercontent.com/16640218/53534314-2244c500-3ab3-11e9-95ef-e7e7b282ab4f.png)
 
-### Read checkpoint only on first worker
+### Read checkpoint only on the first worker
 
-For the same reason as above, we read checkpoint only the first worker and *broadcast* initial state to other workers.
+For the same reason as above, we read the checkpoint only on the first worker and *broadcast* the initial state to other workers.
 
 Replace the following code:
 
@@ -160,7 +162,7 @@ else:
 
 ### Adjust learning rate and add Distributed Optimizer
 
-Horovod uses an operation that averages gradients across workers.  Gradient averaging typically requires corresponding increase in learning rate to make bigger steps in the direction of a higher-quality gradient.
+Horovod uses an operation that averages gradients across workers.  Gradient averaging typically requires a corresponding increase in learning rate to make bigger steps in the direction of a higher-quality gradient.
 
 Replace `opt = keras.optimizers.SGD(lr=args.base_lr, momentum=args.momentum)` with:
 
@@ -177,9 +179,9 @@ opt = hvd.DistributedOptimizer(opt)
 
 ### Add BroadcastGlobalVariablesCallback
 
-In previous section, we mentioned that first worker would broadcast parameters to the rest of the workers.  We will use `horovod.keras.BroadcastGlobalVariablesCallback` to make this happen.
+In the previous section, we mentioned that the first worker would broadcast parameters to the rest of the workers.  We will use `horovod.keras.BroadcastGlobalVariablesCallback` to make this happen.
 
-Add `BroadcastGlobalVariablesCallback` as the first element of `callbacks` list:
+Add `BroadcastGlobalVariablesCallback` as the first element of the `callbacks` list:
 
 ```python
 callbacks = [
@@ -195,11 +197,11 @@ callbacks = [
 
 ### Add learning rate warmup
 
-Many models are sensitive to using large learning rate immediately after initialization and can benefit from learning rate warmup.  The idea is to start training with lower LR and gradually raise it to target LR over few epochs.  Horovod has convenient `LearningRateWarmupCallback` for Keras API that implements that logic.
+Many models are sensitive to using a large learning rate (LR) immediately after initialization and can benefit from learning rate warmup.  The idea is to start training with lower LR and gradually raise it to a target LR over a few epochs.  Horovod has the convenient `LearningRateWarmupCallback` for the Keras API that implements that logic.
 
 Since we're already using `LearningRateScheduler` in this code, and it modifies learning rate along with `LearningRateWarmupCallback`, there is a possibility of a conflict.  In order to avoid such conflict, we will swap out `LearningRateScheduler` with Horovod `LearningRateScheduleCallback`.
 
-We will replace the following code:
+Replace the following code:
 
 ```python
 def lr_schedule(epoch):
@@ -241,7 +243,7 @@ callbacks = [
 
 ![image](https://user-images.githubusercontent.com/16640218/53535420-98e3c180-3ab7-11e9-8780-9258081f66c5.png)
 
-Since we've added new `args.warmup_epochs` argument, we should register it:
+Since we've added a new `args.warmup_epochs` argument, we should register it:
 
 ```python
 parser.add_argument('--warmup-epochs', type=float, default=5,
@@ -282,17 +284,17 @@ if hvd.rank() == 0:
 
 ### Modify training loop to execute fewer steps per epoch
 
-In order to speed up training, we will execute fewer steps of distributed training.  In order to keep the total number of examples processed during the training the same, we will do `num_steps / N` steps, where `num_steps` is the original number of steps, and `N` is the total number of workers.
+To speed up training, we will execute fewer steps of distributed training.  To keep the total number of examples processed during the training the same, we will do `num_steps / N` steps, where `num_steps` is the original number of steps, and `N` is the total number of workers.
 
-We will also speed-up validation by validating `3 * num_validation_steps / N` steps on each worker.  Multiplier **3** provides over-sampling of validation data helps to increase probability that every validation example will be evaluated.
+We will also speed up validation by validating `3 * num_validation_steps / N` steps on each worker.  The multiplier **3** provides over-sampling of validation data helps to increase probability that every validation example will be evaluated.
 
 Replace `model.fit_generator(...)` with:
 
 ```python
 # Train the model. The training will randomly sample 1 / N batches of training data and
 # 3 / N batches of validation data on every worker, where N is the number of workers.
-# Over-sampling of validation data helps to increase probability that every validation
-# example will be evaluated.
+# Over-sampling of validation data, which helps to increase the probability that every
+# validation example will be evaluated.
 model.fit_generator(train_iter,
                     steps_per_epoch=len(train_iter) // hvd.size(),
                     callbacks=callbacks,
@@ -310,7 +312,7 @@ model.fit_generator(train_iter,
 
 Since we're not validating full dataset on each worker anymore, each worker will have different validation results.  To improve validation metric quality and reduce variance, we will average validation results among all workers.
 
-To do so, we will inject `MetricAverageCallback` after `BroadcastGlobalVariablesCallback`:
+To do so, inject `MetricAverageCallback` after `BroadcastGlobalVariablesCallback`:
 
 ```python
 callbacks = [
@@ -329,7 +331,7 @@ callbacks = [
 
 ### Check your work
 
-Congratulations!  If you made it this far, your `fashion_mnist.py` should now be fully distributed.  In order to verify, you can run the following command in the terminal, which should produce no output:
+Congratulations!  If you made it this far, your `fashion_mnist.py` should now be fully distributed.  To verify, you can run the following command in the terminal, which should produce no output:
 
 ```
 $ diff fashion_mnist.py fashion_mnist_solution.py
@@ -361,13 +363,13 @@ $ horovodrun -np 4 python fashion_mnist.py --log-dir distributed
 
 ![image](https://user-images.githubusercontent.com/16640218/53536888-da2aa000-3abc-11e9-9083-43060634433c.png)
 
-After a few minutes, you should see training progress.  It will be faster compared to single-GPU model:
+After a few minutes, you should see training progress.  It will be faster compared to the single-GPU model:
 
 ![image](https://user-images.githubusercontent.com/16640218/53536956-270e7680-3abd-11e9-8f3b-acbe9bbfd085.png)
 
 ## Monitor training progress
 
-In order to monitor training progress and compare runs, we will use TensorBoard.
+To monitor training progress and compare runs, we will use TensorBoard.
 
 Open another Terminal in Launcher, and exectute:
 
