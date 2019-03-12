@@ -8,6 +8,7 @@ from keras.datasets import fashion_mnist
 from keras_contrib.applications.wide_resnet import WideResidualNetwork
 import numpy as np
 import tensorflow as tf
+import horovod.keras as hvd
 import os
 
 parser = argparse.ArgumentParser(description='Keras Fashion MNIST Example',
@@ -32,6 +33,15 @@ args = parser.parse_args()
 # Checkpoints will be written in the log directory.
 args.checkpoint_format = os.path.join(args.log_dir, 'checkpoint-{epoch}.h5')
 
+# Horovod: initialize Horovod.
+hvd.init()
+
+# Horovod: pin GPU to be used to process local rank (one GPU per process)
+config = tf.ConfigProto()
+config.gpu_options.allow_growth = True
+config.gpu_options.visible_device_list = str(hvd.local_rank())
+K.set_session(tf.Session(config=config))
+
 # If set > 0, will resume training from a given checkpoint.
 resume_from_epoch = 0
 for try_epoch in range(args.epochs, 0, -1):
@@ -39,7 +49,12 @@ for try_epoch in range(args.epochs, 0, -1):
         resume_from_epoch = try_epoch
         break
 
-verbose = 1
+# Horovod: broadcast resume_from_epoch from rank 0 (which will have
+# checkpoints) to other ranks.
+resume_from_epoch = hvd.broadcast(resume_from_epoch, 0, name='resume_from_epoch')
+
+# Horovod: print logs on the first worker.
+verbose = 1 if hvd.rank() == 0 else 0
 
 # Input image dimensions
 img_rows, img_cols = 28, 28
