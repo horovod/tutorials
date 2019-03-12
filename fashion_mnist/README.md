@@ -22,7 +22,7 @@ On the left hand side, you will see a number of Python files: `fashion_mnist.py`
 
 <img src="https://user-images.githubusercontent.com/16640218/53517505-9f584600-3a83-11e9-8e1f-9099e9690299.png" width="300"></img>
 
-The first file contains the Keras model that does not have any Horovod code, while the second one has all the Horovod features added.  In this tutorial, we will guide you to transform `fashion_mnist.py` into `fashion_mnist_solution.py` step-by-step.  If you get stuck at any point, you can compare your code with `fashion_mnist_after_step_N.py` that corresponds to the step you're at.
+The first file contains the Keras model that does not have any Horovod code, while the second one has all the Horovod features added.  In this tutorial, we will guide you to transform `fashion_mnist.py` into `fashion_mnist_solution.py` step-by-step.  If you get stuck at any point, you can compare your code with the `fashion_mnist_after_step_N.py` file that corresponds to the step you're at.
 
 Why Keras?  We chose Keras due to its simplicity, and the fact that it will be the way to define models in TensorFlow 2.0.
 
