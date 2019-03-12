@@ -22,7 +22,7 @@ $ sudo bash
 
 ```
 $ sudo bash
-# apt-get install apt-transport-https ca-certificates curl gnupg-agent software-properties-common lsb-core
+# apt-get install -y apt-transport-https ca-certificates curl gnupg-agent software-properties-common lsb-core
 # curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
 # add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
 # apt-get update
@@ -51,7 +51,8 @@ $ sudo docker build -t fashion_mnist_tutorial .
 ## Auto-start model Docker
 
 ```
-$ (echo '#!/bin/sh -e'; echo 'while true; do nvidia-docker run -it --rm --privileged --network=host --shm-size 4G fashion_mnist_tutorial; sleep 60; done') | sudo tee /etc/rc.local
+$ (echo '#!/bin/sh -e'; echo 'while true; do nvidia-docker run --rm --privileged --network=host --shm-size 4G fashion_mnist_tutorial; sleep 60; done') | sudo tee /etc/rc.local
+$ sudo systemctl enable rc-local.service
 $ sudo reboot
 ```
 
