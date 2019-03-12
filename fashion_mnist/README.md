@@ -73,14 +73,14 @@ import horovod.keras as hvd
 
 ### 2. Initialize Horovod
 
-Add the following code after `args = parser.parse_args()`:
+Add the following code after `args.checkpoint_format = os.path.join(args.log_dir, 'checkpoint-{epoch}.h5')`:
 
 ```python
 # Horovod: initialize Horovod.
 hvd.init()
 ```
 
-![image](https://user-images.githubusercontent.com/16640218/53518048-ff9bb780-3a84-11e9-8059-49ea1c5954dc.png)
+![image](https://user-images.githubusercontent.com/16640218/54185178-9d1fbf80-4465-11e9-8617-1f335038a4e0.png)
 
 ### 3. Pin GPU to be used by each process
 
@@ -100,20 +100,13 @@ config.gpu_options.visible_device_list = str(hvd.local_rank())
 K.set_session(tf.Session(config=config))
 ```
 
-![image](https://user-images.githubusercontent.com/16640218/53518149-4689ad00-3a85-11e9-9f59-f22eeba05e73.png)
+![image](https://user-images.githubusercontent.com/16640218/54185222-b9bbf780-4465-11e9-83de-4c587db327ae.png)
 
 ### 4. Broadcast the starting epoch from the first worker to everyone else
 
 In `fashion_mnist.py`, we're using the filename of the last checkpoint to determine the epoch to resume training from in case of a failure:
 
-```python
-# If set > 0, will resume training from a given checkpoint.
-resume_from_epoch = 0
-for try_epoch in range(args.epochs, 0, -1):
-    if os.path.exists(args.checkpoint_format.format(epoch=try_epoch)):
-        resume_from_epoch = try_epoch
-        break
-```
+![image](https://user-images.githubusercontent.com/16640218/54185268-d35d3f00-4465-11e9-99eb-96d4b99f1d38.png)
 
 As you scale your workload to multi-node, some of your workers may not have access to the filesystem containing the checkpoint.  For that reason, we make the first worker to determine the epoch to restart from, and *broadcast* that information to the rest of the workers.
 
