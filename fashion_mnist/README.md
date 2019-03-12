@@ -70,6 +70,7 @@ import horovod.keras as hvd
 ```
 
 ![image](https://user-images.githubusercontent.com/16640218/53517965-c8c5a180-3a84-11e9-9b36-e745bebe84df.png)
+(see line 12)
 
 ### 2. Initialize Horovod
 
@@ -81,6 +82,7 @@ hvd.init()
 ```
 
 ![image](https://user-images.githubusercontent.com/16640218/54185178-9d1fbf80-4465-11e9-8617-1f335038a4e0.png)
+(see line 36-37)
 
 ### 3. Pin GPU to be used by each process
 
@@ -101,6 +103,7 @@ K.set_session(tf.Session(config=config))
 ```
 
 ![image](https://user-images.githubusercontent.com/16640218/54185222-b9bbf780-4465-11e9-83de-4c587db327ae.png)
+(see line 39-43)
 
 ### 4. Broadcast the starting epoch from the first worker to everyone else
 
@@ -119,6 +122,7 @@ resume_from_epoch = hvd.broadcast(resume_from_epoch, 0, name='resume_from_epoch'
 ```
 
 ![image](https://user-images.githubusercontent.com/16640218/53534072-2de3bc00-3ab2-11e9-8cf1-7531542e3202.png)
+(see line 52-54)
 
 ### 5. Print verbose logs only on the first worker
 
@@ -132,6 +136,7 @@ verbose = 1 if hvd.rank() == 0 else 0
 ```
 
 ![image](https://user-images.githubusercontent.com/16640218/53534314-2244c500-3ab3-11e9-95ef-e7e7b282ab4f.png)
+(see line 56-57)
 
 ### 6. Read checkpoint only on the first worker
 
@@ -160,6 +165,7 @@ else:
 ```
 
 ![image](https://user-images.githubusercontent.com/16640218/53534410-9717ff00-3ab3-11e9-86eb-1bf8299416d2.png)
+(see line 91-96)
 
 ### 7. Adjust learning rate and add Distributed Optimizer
 
@@ -177,6 +183,7 @@ opt = hvd.DistributedOptimizer(opt)
 ```
 
 ![image](https://user-images.githubusercontent.com/16640218/53534579-52409800-3ab4-11e9-971e-f7def73c7b36.png)
+(see line 116-121)
 
 ### 8. Add BroadcastGlobalVariablesCallback
 
@@ -195,6 +202,7 @@ callbacks = [
 ```
 
 ![image](https://user-images.githubusercontent.com/16640218/53535043-1dcddb80-3ab6-11e9-9911-1eb33a1f531c.png)
+(see line 139-142)
 
 ### 9. Add learning rate warmup
 
@@ -243,6 +251,7 @@ callbacks = [
 ```
 
 ![image](https://user-images.githubusercontent.com/16640218/53535420-98e3c180-3ab7-11e9-8780-9258081f66c5.png)
+(see line 133-142)
 
 Since we've added a new `args.warmup_epochs` argument, we should register it:
 
@@ -251,7 +260,8 @@ parser.add_argument('--warmup-epochs', type=float, default=5,
                     help='number of warmup epochs')
 ```
 
-![image](https://user-images.githubusercontent.com/16640218/53535703-9d5caa00-3ab8-11e9-85aa-0bc6f93f9826.png)
+![image](https://user-images.githubusercontent.com/16640218/54185817-284d8500-4467-11e9-9f7d-c6adc5b12cbf.png)
+(see line 26-27)
 
 ### 10. Save checkpoints & logs only of the first worker
 
@@ -282,6 +292,7 @@ if hvd.rank() == 0:
 ```
 
 ![image](https://user-images.githubusercontent.com/16640218/53535616-4e167980-3ab8-11e9-82d9-82e431dfd621.png)
+(see line 145-148)
 
 ### 11. Modify training loop to execute fewer steps per epoch
 
@@ -308,6 +319,7 @@ model.fit_generator(train_iter,
 ```
 
 ![image](https://user-images.githubusercontent.com/16640218/53536410-283ea400-3abb-11e9-8742-05921b0795de.png)
+(see line 152-164)
 
 ### 12. Average validation results among workers
 
@@ -329,6 +341,7 @@ callbacks = [
 ```
 
 ![image](https://user-images.githubusercontent.com/16640218/53536553-b2870800-3abb-11e9-88f9-1a2758bd25dd.png)
+(see line 135-139)
 
 ## Check your work
 
