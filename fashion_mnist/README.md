@@ -378,7 +378,7 @@ Open the browser and load `http://<ip-address-of-vm>:6006/`:
 
 ![image](https://user-images.githubusercontent.com/16640218/54213792-3ec50200-44a2-11e9-9c7d-fdf9ab1bf94f.png)
 
-By default, TensorBoard shows metric comparison based on the number of epochs.  This is shown on the chart above.  To compare training time it takes to achieve certain accuracy, select **RELATIVE** in the *Horizontal Axis* selector:
+By default, TensorBoard shows metric comparison based on the number of epochs.  This is shown on the chart above.  To compare training time it takes to achieve a certain accuracy, select **RELATIVE** in the *Horizontal Axis* selector:
 
 ![image](https://user-images.githubusercontent.com/16640218/54213965-94011380-44a2-11e9-9420-138bfe529ec6.png)
 
