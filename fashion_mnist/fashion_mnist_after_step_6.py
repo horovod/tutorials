@@ -15,9 +15,6 @@ parser = argparse.ArgumentParser(description='Keras Fashion MNIST Example',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--log-dir', default='./logs',
                     help='tensorboard log directory')
-parser.add_argument('--checkpoint-format', default='./logs/checkpoint-{epoch}.h5',
-                    help='checkpoint file format')
-
 parser.add_argument('--batch-size', type=int, default=32,
                     help='input batch size for training')
 parser.add_argument('--val-batch-size', type=int, default=32,
@@ -32,6 +29,9 @@ parser.add_argument('--wd', type=float, default=0.000005,
                     help='weight decay')
 
 args = parser.parse_args()
+
+# Checkpoints will be written in the log directory.
+args.checkpoint_format = os.path.join(args.log_dir, 'checkpoint-{epoch}.h5')
 
 # Horovod: initialize Horovod.
 hvd.init()
