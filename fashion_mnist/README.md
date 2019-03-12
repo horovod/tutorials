@@ -12,7 +12,7 @@ Let's begin!
 
 When you open Jupyter Lab in your browser, you will see a screen similar to this:
 
-![image](https://user-images.githubusercontent.com/16640218/53517400-5d2f0480-3a83-11e9-8db9-268037fc6c2f.png)
+![image](https://user-images.githubusercontent.com/16640218/54183442-68aa0480-4461-11e9-872e-89e739ab0937.png)
 
 In this lab, we will use the Terminal and File Editor features.
 
@@ -20,7 +20,7 @@ In this lab, we will use the Terminal and File Editor features.
 
 On the left hand side, you will see a number of Python files: `fashion_mnist.py`, `fashion_mnist_solution.py`, and a few intermediate files `fashion_mnist_after_step_N.py`.
 
-<img src="https://user-images.githubusercontent.com/16640218/53517505-9f584600-3a83-11e9-8e1f-9099e9690299.png" width="300"></img>
+<img src="https://user-images.githubusercontent.com/16640218/54183508-9000d180-4461-11e9-8fdb-995f065aa4b9.png" width="300"></img>
 
 The first file contains the Keras model that does not have any Horovod code, while the second one has all the Horovod features added.  In this tutorial, we will guide you to transform `fashion_mnist.py` into `fashion_mnist_solution.py` step-by-step.  If you get stuck at any point, you can compare your code with the `fashion_mnist_after_step_N.py` file that corresponds to the step you're at.
 
@@ -43,7 +43,15 @@ $ python fashion_mnist_backup.py --log-dir baseline
 
 ![image](https://user-images.githubusercontent.com/16640218/53534844-5620ea00-3ab5-11e9-9307-332db459da66.png)
 
-Let it run.  We will get back to the results later.
+After a few minutes, it will train a few epochs:
+
+![image](https://user-images.githubusercontent.com/16640218/54184767-a4929900-4464-11e9-8a6a-e2fed3f4cd00.png)
+
+Open the browser and load `http://<ip-address-of-vm>:6006/`:
+
+![image](https://user-images.githubusercontent.com/16640218/54184664-69906580-4464-11e9-8a8f-3a0b4028b379.png)
+
+You will see training curves in the TensorBoard.  Let it run.  We will get back to the results later.
 
 ## Modify fashion_mnist.py
 
@@ -360,17 +368,7 @@ After a few minutes, you should see training progress.  It will be faster compar
 
 ## Monitor training progress
 
-To monitor training progress and compare runs, we will use TensorBoard.
-
-Open another Terminal in Launcher, and exectute:
-
-```
-$ tensorboard --logdir .
-```
-
-![image](https://user-images.githubusercontent.com/16640218/53537203-072b8280-3abe-11e9-8ffa-3cb1b1ed5922.png)
-
-Now, open the browser and load `http://<ip-address-of-vm>:6006/`:
+Open the browser and load `http://<ip-address-of-vm>:6006/`:
 
 ![image](https://user-images.githubusercontent.com/16640218/53537263-35a95d80-3abe-11e9-9f88-45c15a4eab11.png)
 
