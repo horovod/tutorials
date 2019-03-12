@@ -18,11 +18,11 @@ In this lab, we will use the Terminal and File Editor features.
 
 ## Explore model files
 
-On the left hand side, you will see two Python files: `fashion_mnist.py` and `fashion_mnist_solution.py`.
+On the left hand side, you will see a number of Python files: `fashion_mnist.py`, `fashion_mnist_solution.py`, and a few intermediate files `fashion_mnist_after_step_N.py`.
 
 <img src="https://user-images.githubusercontent.com/16640218/53517505-9f584600-3a83-11e9-8e1f-9099e9690299.png" width="300"></img>
 
-The first file contains the Keras model that does not have any Horovod code, while the second one has all the Horovod features added.  In this tutorial, we will guide you to transform `fashion_mnist.py` into `fashion_mnist_solution.py` step-by-step.
+The first file contains the Keras model that does not have any Horovod code, while the second one has all the Horovod features added.  In this tutorial, we will guide you to transform `fashion_mnist.py` into `fashion_mnist_solution.py` step-by-step.  If you get stuck at any point, you can compare your code with `fashion_mnist_after_step_N.py` that corresponds to the step you're at.
 
 Why Keras?  We chose Keras due to its simplicity, and the fact that it will be the way to define models in TensorFlow 2.0.
 
@@ -53,7 +53,7 @@ Double-click `fashion_mnist.py` in the file picker, which will open it in the ed
 
 Let's dive into the modifications!
 
-### Add Horovod import
+### 1. Add Horovod import
 
 Add the following code after `import tensorflow as tf`:
 
@@ -63,7 +63,7 @@ import horovod.keras as hvd
 
 ![image](https://user-images.githubusercontent.com/16640218/53517965-c8c5a180-3a84-11e9-9b36-e745bebe84df.png)
 
-### Initialize Horovod
+### 2. Initialize Horovod
 
 Add the following code after `args = parser.parse_args()`:
 
@@ -74,7 +74,7 @@ hvd.init()
 
 ![image](https://user-images.githubusercontent.com/16640218/53518048-ff9bb780-3a84-11e9-8059-49ea1c5954dc.png)
 
-### Pin GPU to be used by each process
+### 3. Pin GPU to be used by each process
 
 With Horovod, you typically use a single GPU per training process:
 
@@ -94,7 +94,7 @@ K.set_session(tf.Session(config=config))
 
 ![image](https://user-images.githubusercontent.com/16640218/53518149-4689ad00-3a85-11e9-9f59-f22eeba05e73.png)
 
-### Broadcast the starting epoch from the first worker to everyone else
+### 4. Broadcast the starting epoch from the first worker to everyone else
 
 In `fashion_mnist.py`, we're using the filename of the last checkpoint to determine the epoch to resume training from in case of a failure:
 
@@ -119,7 +119,7 @@ resume_from_epoch = hvd.broadcast(resume_from_epoch, 0, name='resume_from_epoch'
 
 ![image](https://user-images.githubusercontent.com/16640218/53534072-2de3bc00-3ab2-11e9-8cf1-7531542e3202.png)
 
-### Print verbose logs only on the first worker
+### 5. Print verbose logs only on the first worker
 
 Horovod uses MPI to run model training workers.  By default, MPI aggregates output from all workers.  To reduce clutter, we recommended that you write logs only on the first worker.
 
@@ -132,7 +132,7 @@ verbose = 1 if hvd.rank() == 0 else 0
 
 ![image](https://user-images.githubusercontent.com/16640218/53534314-2244c500-3ab3-11e9-95ef-e7e7b282ab4f.png)
 
-### Read checkpoint only on the first worker
+### 6. Read checkpoint only on the first worker
 
 For the same reason as above, we read the checkpoint only on the first worker and *broadcast* the initial state to other workers.
 
@@ -160,7 +160,7 @@ else:
 
 ![image](https://user-images.githubusercontent.com/16640218/53534410-9717ff00-3ab3-11e9-86eb-1bf8299416d2.png)
 
-### Adjust learning rate and add Distributed Optimizer
+### 7. Adjust learning rate and add Distributed Optimizer
 
 Horovod uses an operation that averages gradients across workers.  Gradient averaging typically requires a corresponding increase in learning rate to make bigger steps in the direction of a higher-quality gradient.
 
@@ -177,7 +177,7 @@ opt = hvd.DistributedOptimizer(opt)
 
 ![image](https://user-images.githubusercontent.com/16640218/53534579-52409800-3ab4-11e9-971e-f7def73c7b36.png)
 
-### Add BroadcastGlobalVariablesCallback
+### 8. Add BroadcastGlobalVariablesCallback
 
 In the previous section, we mentioned that the first worker would broadcast parameters to the rest of the workers.  We will use `horovod.keras.BroadcastGlobalVariablesCallback` to make this happen.
 
@@ -195,7 +195,7 @@ callbacks = [
 
 ![image](https://user-images.githubusercontent.com/16640218/53535043-1dcddb80-3ab6-11e9-9911-1eb33a1f531c.png)
 
-### Add learning rate warmup
+### 9. Add learning rate warmup
 
 Many models are sensitive to using a large learning rate (LR) immediately after initialization and can benefit from learning rate warmup.  The idea is to start training with lower LR and gradually raise it to a target LR over a few epochs.  Horovod has the convenient `LearningRateWarmupCallback` for the Keras API that implements that logic.
 
@@ -252,7 +252,7 @@ parser.add_argument('--warmup-epochs', type=float, default=5,
 
 ![image](https://user-images.githubusercontent.com/16640218/53535703-9d5caa00-3ab8-11e9-85aa-0bc6f93f9826.png)
 
-### Save checkpoints & logs only of the first worker
+### 10. Save checkpoints & logs only of the first worker
 
 We don't want multiple workers to be overwriting same checkpoint files, since it could lead to corruption.
 
@@ -282,7 +282,7 @@ if hvd.rank() == 0:
 
 ![image](https://user-images.githubusercontent.com/16640218/53535616-4e167980-3ab8-11e9-82d9-82e431dfd621.png)
 
-### Modify training loop to execute fewer steps per epoch
+### 11. Modify training loop to execute fewer steps per epoch
 
 To speed up training, we will execute fewer steps of distributed training.  To keep the total number of examples processed during the training the same, we will do `num_steps / N` steps, where `num_steps` is the original number of steps, and `N` is the total number of workers.
 
@@ -308,7 +308,7 @@ model.fit_generator(train_iter,
 
 ![image](https://user-images.githubusercontent.com/16640218/53536410-283ea400-3abb-11e9-8742-05921b0795de.png)
 
-### Average validation results among workers
+### 12. Average validation results among workers
 
 Since we're not validating full dataset on each worker anymore, each worker will have different validation results.  To improve validation metric quality and reduce variance, we will average validation results among all workers.
 
@@ -329,7 +329,7 @@ callbacks = [
 
 ![image](https://user-images.githubusercontent.com/16640218/53536553-b2870800-3abb-11e9-88f9-1a2758bd25dd.png)
 
-### Check your work
+## Check your work
 
 Congratulations!  If you made it this far, your `fashion_mnist.py` should now be fully distributed.  To verify, you can run the following command in the terminal, which should produce no output:
 
@@ -345,15 +345,6 @@ $
 It's time to run your distributed `fashion_mnist.py`.  First, let's check if the single-GPU version completed.  Open the terminal, and verify that it did complete, and interrupt it using Ctrl-C if it did not.
 
 ![image](https://user-images.githubusercontent.com/16640218/53536718-448f1080-3abc-11e9-9e22-021dc3ba5de9.png)
-
-You should now remove checkpoint files, since we will not need them:
-
-```
-$ rm checkpoint*
-$ ls checkpoint*
-```
-
-![image](https://user-images.githubusercontent.com/16640218/53536860-c1ba8580-3abc-11e9-9276-46fcb6c53d4c.png)
 
 Now, run distributed `fashion_mnist.py` using:
 

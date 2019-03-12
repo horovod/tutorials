@@ -133,12 +133,6 @@ callbacks = [
     # training is started with random weights or restored from a checkpoint.
     hvd.callbacks.BroadcastGlobalVariablesCallback(0),
 
-    # Horovod: average metrics among workers at the end of every epoch.
-    #
-    # Note: This callback must be in the list before the ReduceLROnPlateau,
-    # TensorBoard, or other metrics-based callbacks.
-    hvd.callbacks.MetricAverageCallback(),
-
     # Horovod: using `lr = 1.0 * hvd.size()` from the very beginning leads to worse final
     # accuracy. Scale the learning rate `lr = 1.0` ---> `lr = 1.0 * hvd.size()` during
     # the first five epochs. See https://arxiv.org/abs/1706.02677 for details.

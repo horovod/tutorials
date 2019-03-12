@@ -133,12 +133,6 @@ callbacks = [
     # training is started with random weights or restored from a checkpoint.
     hvd.callbacks.BroadcastGlobalVariablesCallback(0),
 
-    # Horovod: average metrics among workers at the end of every epoch.
-    #
-    # Note: This callback must be in the list before the ReduceLROnPlateau,
-    # TensorBoard, or other metrics-based callbacks.
-    hvd.callbacks.MetricAverageCallback(),
-
     # Horovod: using `lr = 1.0 * hvd.size()` from the very beginning leads to worse final
     # accuracy. Scale the learning rate `lr = 1.0` ---> `lr = 1.0 * hvd.size()` during
     # the first five epochs. See https://arxiv.org/abs/1706.02677 for details.
@@ -149,26 +143,21 @@ callbacks = [
     hvd.callbacks.LearningRateScheduleCallback(start_epoch=15, end_epoch=25, multiplier=1e-1),
     hvd.callbacks.LearningRateScheduleCallback(start_epoch=25, end_epoch=35, multiplier=1e-2),
     hvd.callbacks.LearningRateScheduleCallback(start_epoch=35, multiplier=1e-3),
+
+    keras.callbacks.ModelCheckpoint(args.checkpoint_format),
+    keras.callbacks.TensorBoard(args.log_dir)
 ]
 
-# Horovod: save checkpoints only on the first worker to prevent other workers from corrupting them.
-if hvd.rank() == 0:
-    callbacks.append(keras.callbacks.ModelCheckpoint(args.checkpoint_format))
-    callbacks.append(keras.callbacks.TensorBoard(args.log_dir))
-
-# Train the model. The training will randomly sample 1 / N batches of training data and
-# 3 / N batches of validation data on every worker, where N is the number of workers.
-# Over-sampling of validation data, which helps to increase the probability that every
-# validation example will be evaluated.
+# Train the model.
 model.fit_generator(train_iter,
-                    steps_per_epoch=len(train_iter) // hvd.size(),
+                    steps_per_epoch=len(train_iter),
                     callbacks=callbacks,
                     epochs=args.epochs,
                     verbose=verbose,
                     workers=4,
                     initial_epoch=resume_from_epoch,
                     validation_data=test_iter,
-                    validation_steps=3 * len(test_iter) // hvd.size())
+                    validation_steps=len(test_iter))
 
 # Evaluate the model on the full data set.
 score = model.evaluate_generator(test_iter, len(test_iter), workers=4)

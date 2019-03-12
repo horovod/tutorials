@@ -14,7 +14,7 @@ parser = argparse.ArgumentParser(description='Keras Fashion MNIST Example',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--log-dir', default='./logs',
                     help='tensorboard log directory')
-parser.add_argument('--checkpoint-format', default='./checkpoint-{epoch}.h5',
+parser.add_argument('--checkpoint-format', default='./logs/checkpoint-{epoch}.h5',
                     help='checkpoint file format')
 
 parser.add_argument('--batch-size', type=int, default=32,

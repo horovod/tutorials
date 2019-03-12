@@ -26,8 +26,6 @@ parser.add_argument('--epochs', type=int, default=40,
                     help='number of epochs to train')
 parser.add_argument('--base-lr', type=float, default=0.01,
                     help='learning rate for a single GPU')
-parser.add_argument('--warmup-epochs', type=float, default=5,
-                    help='number of warmup epochs')
 parser.add_argument('--momentum', type=float, default=0.9,
                     help='SGD momentum')
 parser.add_argument('--wd', type=float, default=0.000005,
@@ -38,12 +36,6 @@ args = parser.parse_args()
 # Horovod: initialize Horovod.
 hvd.init()
 
-# Horovod: pin GPU to be used to process local rank (one GPU per process)
-config = tf.ConfigProto()
-config.gpu_options.allow_growth = True
-config.gpu_options.visible_device_list = str(hvd.local_rank())
-K.set_session(tf.Session(config=config))
-
 # If set > 0, will resume training from a given checkpoint.
 resume_from_epoch = 0
 for try_epoch in range(args.epochs, 0, -1):
@@ -51,12 +43,7 @@ for try_epoch in range(args.epochs, 0, -1):
         resume_from_epoch = try_epoch
         break
 
-# Horovod: broadcast resume_from_epoch from rank 0 (which will have
-# checkpoints) to other ranks.
-resume_from_epoch = hvd.broadcast(resume_from_epoch, 0, name='resume_from_epoch')
-
-# Horovod: print logs on the first worker.
-verbose = 1 if hvd.rank() == 0 else 0
+verbose = 1
 
 # Input image dimensions
 img_rows, img_cols = 28, 28
@@ -91,10 +78,8 @@ test_gen.std = train_gen.std
 test_iter = test_gen.flow(x_test, y_test, batch_size=args.val_batch_size)
 
 # Restore from a previous checkpoint, if initial_epoch is specified.
-# Horovod: restore on the first worker which will broadcast both model and optimizer weights
-# to other workers.
-if resume_from_epoch > 0 and hvd.rank() == 0:
-    model = hvd.load_model(args.checkpoint_format.format(epoch=resume_from_epoch))
+if resume_from_epoch > 0:
+    model = keras.models.load_model(args.checkpoint_format.format(epoch=resume_from_epoch))
 else:
     # Set up standard WideResNet-16-10 model.
     model = WideResidualNetwork(depth=16, width=10, weights=None, input_shape=input_shape,
@@ -115,60 +100,40 @@ else:
 
     model = keras.models.Model.from_config(model_config)
 
-    # Horovod: adjust learning rate based on number of GPUs.
-    opt = keras.optimizers.SGD(lr=args.base_lr * hvd.size(),
+    opt = keras.optimizers.SGD(lr=args.base_lr,
                                momentum=args.momentum)
-
-    # Horovod: add Horovod Distributed Optimizer.
-    opt = hvd.DistributedOptimizer(opt)
 
     model.compile(loss=keras.losses.categorical_crossentropy,
                   optimizer=opt,
                   metrics=['accuracy'])
 
 
+def lr_schedule(epoch):
+    if epoch < 15:
+        return args.base_lr
+    if epoch < 25:
+        return 1e-1 * args.base_lr
+    if epoch < 35:
+        return 1e-2 * args.base_lr
+    return 1e-3 * args.base_lr
+
+
 callbacks = [
-    # Horovod: broadcast initial variable states from rank 0 to all other processes.
-    # This is necessary to ensure consistent initialization of all workers when
-    # training is started with random weights or restored from a checkpoint.
-    hvd.callbacks.BroadcastGlobalVariablesCallback(0),
-
-    # Horovod: average metrics among workers at the end of every epoch.
-    #
-    # Note: This callback must be in the list before the ReduceLROnPlateau,
-    # TensorBoard, or other metrics-based callbacks.
-    hvd.callbacks.MetricAverageCallback(),
-
-    # Horovod: using `lr = 1.0 * hvd.size()` from the very beginning leads to worse final
-    # accuracy. Scale the learning rate `lr = 1.0` ---> `lr = 1.0 * hvd.size()` during
-    # the first five epochs. See https://arxiv.org/abs/1706.02677 for details.
-    hvd.callbacks.LearningRateWarmupCallback(warmup_epochs=args.warmup_epochs, verbose=verbose),
-
-    # Horovod: after the warmup reduce learning rate by 10 on the 15th, 25th and 35th epochs.
-    hvd.callbacks.LearningRateScheduleCallback(start_epoch=args.warmup_epochs, end_epoch=15, multiplier=1.),
-    hvd.callbacks.LearningRateScheduleCallback(start_epoch=15, end_epoch=25, multiplier=1e-1),
-    hvd.callbacks.LearningRateScheduleCallback(start_epoch=25, end_epoch=35, multiplier=1e-2),
-    hvd.callbacks.LearningRateScheduleCallback(start_epoch=35, multiplier=1e-3),
+    keras.callbacks.LearningRateScheduler(lr_schedule),
+    keras.callbacks.ModelCheckpoint(args.checkpoint_format),
+    keras.callbacks.TensorBoard(args.log_dir)
 ]
 
-# Horovod: save checkpoints only on the first worker to prevent other workers from corrupting them.
-if hvd.rank() == 0:
-    callbacks.append(keras.callbacks.ModelCheckpoint(args.checkpoint_format))
-    callbacks.append(keras.callbacks.TensorBoard(args.log_dir))
-
-# Train the model. The training will randomly sample 1 / N batches of training data and
-# 3 / N batches of validation data on every worker, where N is the number of workers.
-# Over-sampling of validation data, which helps to increase the probability that every
-# validation example will be evaluated.
+# Train the model.
 model.fit_generator(train_iter,
-                    steps_per_epoch=len(train_iter) // hvd.size(),
+                    steps_per_epoch=len(train_iter),
                     callbacks=callbacks,
                     epochs=args.epochs,
                     verbose=verbose,
                     workers=4,
                     initial_epoch=resume_from_epoch,
                     validation_data=test_iter,
-                    validation_steps=3 * len(test_iter) // hvd.size())
+                    validation_steps=len(test_iter))
 
 # Evaluate the model on the full data set.
 score = model.evaluate_generator(test_iter, len(test_iter), workers=4)
