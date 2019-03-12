@@ -17,5 +17,5 @@ WORKDIR /tutorial
 
 ENV SHELL=/bin/bash
 
-ENTRYPOINT ["/bin/bash", "-c", "jupyter lab --allow-root --ip=0.0.0.0 --NotebookApp.token='horovod_lab'"]
+ENTRYPOINT ["/bin/bash", "-c", "(tensorboard --logdir . &) && (jupyter lab --allow-root --ip=0.0.0.0 --NotebookApp.token='horovod_lab')"]
 
