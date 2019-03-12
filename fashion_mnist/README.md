@@ -376,9 +376,11 @@ After a few minutes, you should see training progress.  It will be faster compar
 
 Open the browser and load `http://<ip-address-of-vm>:6006/`:
 
-![image](https://user-images.githubusercontent.com/16640218/53537263-35a95d80-3abe-11e9-9f88-45c15a4eab11.png)
+![image](https://user-images.githubusercontent.com/16640218/54213792-3ec50200-44a2-11e9-9c7d-fdf9ab1bf94f.png)
 
-You will now be able to compare accuracy and training time of both models.
+By default, TensorBoard shows metric comparison based on the number of epochs.  This is shown on the chart above.  To compare training time, select **RELATIVE** in the *Horizontal Axis* selector:
+
+![image](https://user-images.githubusercontent.com/16640218/54213965-94011380-44a2-11e9-9420-138bfe529ec6.png)
 
 ### Note
 
