@@ -70,7 +70,7 @@ import horovod.keras as hvd
 ```
 
 ![image](https://user-images.githubusercontent.com/16640218/53517965-c8c5a180-3a84-11e9-9b36-e745bebe84df.png)
-(see line 12)
+(see line 11)
 
 ### 2. Initialize Horovod
 
